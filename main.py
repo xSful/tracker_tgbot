@@ -37,6 +37,9 @@ class packageStatusArrived(StatesGroup):
 class Broadcast(StatesGroup):
     text = State()
 
+class delPackages(StatesGroup):
+    packages_id = State()
+
 # кнопка с инструкцией
 @dp.callback_query_handler(text='instruction')
 async def instruction_button(callback_query: types.CallbackQuery): 
@@ -132,7 +135,7 @@ f"""📮 ВЫ УКАЗАЛИ:\n
 @dp.message_handler(commands='check_packages')
 async def check_packages(message: types.Message):
     await message.reply('📋 ВСЕ ВАШИ ПОСЫЛКИ:')
-    packages = cursor.execute(f'SELECT package_id, package_name, status, time FROM users WHERE tg_id = {message.from_user.id}')
+    packages = cursor.execute(f'SELECT package_id, package_name, status, time, sent_time, arrived_time FROM users WHERE tg_id = {message.from_user.id}')
     fet = packages.fetchall()
     if len(fet) == 0:
         await message.reply(
@@ -141,14 +144,10 @@ async def check_packages(message: types.Message):
 Мы не смогли ничего найти. Возможно посылка уже была доставлена вам на руки.""")
     else:
         for i in fet:
-            await bot.send_message(message.from_user.id, text=
-f"""
-🆔 Ваш заказ: {i[1]}
-#️⃣ Трек-код: {i[0]}
-📦 Статус: {i[2]}
-📅 Создан: {i[3]}
-"""
-                             )
+            sent = f"\n📅 Отправлен: {i[4]}" if i[4] != None else ""
+            arrived = f"\n📅 Доставлено: {i[5]}" if i[5] != None else ""
+            text = f"🆔 Ваш заказ: {i[1]}\n#️⃣ Трек-код: {i[0]}\n📦 Статус: {i[2]}\n📅 Создан: {i[3]}" + sent + arrived
+            await bot.send_message(message.from_user.id, text=text)
     await bot.send_message(message.from_user.id, text='Пока это всё 👍🏻')
 
 # добавление иформации о товаре
@@ -219,6 +218,28 @@ async def set_status_arrived2(message: types.Message, state: FSMContext):
     await state.finish()
 
 
+# Удалить посылки из бд
+@dp.message_handler(commands='del_packs')
+async def delete_packages_from_db(message: types.Message):
+    await message.reply('Какие посылки вы бы хотели удалить?')
+    await delPackages.packages_id.set()
+
+@dp.message_handler(state=delPackages.packages_id)
+async def delete_packages_from_db2(message: types.Message, state: FSMContext):
+    await state.update_data(packages=message.text)
+    data = await state.get_data()
+    data = (data['packages']).split('\n')
+    for i in data:
+        try:
+            cursor.execute(f'DELETE FROM users WHERE package_id = "{i}"')
+            con.commit()
+        except Exception:
+            await bot.send_message(message.from_user.id, text=f'Не удалось удалить посылку {i}, проверте правильность трек номера.')
+            traceback.print_exc()
+    await bot.send_message(message.from_user.id, text='Посылки успешно удалены')
+    await state.finish()
+
+
 
 # рассылка сообщений
 @dp.message_handler(commands='broadcast', commands_prefix='/')
@@ -240,6 +261,15 @@ async def broadcast_text(message: types.Message, state: FSMContext):
 
 @dp.message_handler(commands='start', commands_prefix='/')
 async def start(message: types.Message):
+    try:
+        cursor.execute(f'INSERT INTO users_id (tg_id) VALUES ({message.from_user.id})')
+        con.commit()
+    except:
+        pass
+    id = ((cursor.execute(f'SELECT id FROM users_id WHERE tg_id = {message.from_user.id}')).fetchall())[0][0]
+    num = [4 - len(str(id)) if len(str(id)) < 5 else 0]
+    id = '0'*num[0] + str(id)
+
     await message.reply(
 f"""
 👋 Здравствуйте, {message.from_user.full_name}!
@@ -257,7 +287,7 @@ f"""
 text=f"""
 🪪 ВАШ АККАУНТ в AliPapa:
 
-🆔 👉```AP-{message.from_user.id}```👈
+🆔 👉```Ais-{id}```👈
 (☝️нажмите и скопируйте)
 
 
