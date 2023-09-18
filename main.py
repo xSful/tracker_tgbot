@@ -135,7 +135,7 @@ f"""📮 ВЫ УКАЗАЛИ:\n
 @dp.message_handler(commands='check_packages')
 async def check_packages(message: types.Message):
     await message.reply('📋 ВСЕ ВАШИ ПОСЫЛКИ:')
-    packages = cursor.execute(f'SELECT package_id, package_name, status, time, sent_time, arrived_time FROM users WHERE tg_id = {message.from_user.id}')
+    packages = cursor.execute(f'SELECT package_id, package_name, status, time, sent_time, arrived_time, weight, price FROM users WHERE tg_id = {message.from_user.id}')
     fet = packages.fetchall()
     if len(fet) == 0:
         await message.reply(
@@ -146,6 +146,8 @@ async def check_packages(message: types.Message):
         for i in fet:
             sent = f"\n📅 Отправлен: {i[4]}" if i[4] != None else ""
             arrived = f"\n📅 Доставлено: {i[5]}" if i[5] != None else ""
+            weight = f"\n⚖️ Вес: {i[6]}" if i[6] != None else ""
+            price = f"\n💵 Цена: {i[7]}" if i[7] != None else ""
             text = f"🆔 Ваш заказ: {i[1]}\n#️⃣ Трек-код: {i[0]}\n📦 Статус: {i[2]}\n📅 Создан: {i[3]}" + sent + arrived
             await bot.send_message(message.from_user.id, text=text)
     await bot.send_message(message.from_user.id, text='Пока это всё 👍🏻')
