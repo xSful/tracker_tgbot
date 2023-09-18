@@ -148,7 +148,7 @@ async def check_packages(message: types.Message):
             arrived = f"\n📅 Доставлено: {i[5]}" if i[5] != None else ""
             weight = f"\n⚖️ Вес: {i[6]}" if i[6] != None else ""
             price = f"\n💵 Цена: {i[7]}" if i[7] != None else ""
-            text = f"🆔 Ваш заказ: {i[1]}\n#️⃣ Трек-код: {i[0]}\n📦 Статус: {i[2]}\n📅 Создан: {i[3]}" + sent + arrived
+            text = f"🆔 Ваш заказ: {i[1]}\n#️⃣ Трек-код: {i[0]}\n📦 Статус: {i[2]}\n📅 Создан: {i[3]}" + sent + arrived + weight + price
             await bot.send_message(message.from_user.id, text=text)
     await bot.send_message(message.from_user.id, text='Пока это всё 👍🏻')
 
