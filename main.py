@@ -257,7 +257,7 @@ async def broadcast_text(message: types.Message, state: FSMContext):
     users = (cursor.execute(f'SELECT tg_id FROM users_info')).fetchall()
     for i in users:
         await bot.send_message(i[0], text=data["text"])
-    
+    await state.finish()
 
 
 
